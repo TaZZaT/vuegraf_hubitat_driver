@@ -1,0 +1,101 @@
+2a3,5
+> import urllib.request
+> import urllib.parse
+> import requests
+8d10
+< import vuedatapush
+50a53,72
+> def send_to_hub(myData):
+>     hub_url = 'http://' + config['hubitat']['host'] + ':' + str(config['hubitat']['port']) + '/'
+>     hub_headers = {
+>         "Content-Type": "application/json"
+>     }
+>     json_data = json.dumps(myData).encode("utf-8")
+>     #print(hub_url)
+>     #print(json_data)
+>     #print(hub_headers)
+>     try:
+>         req = urllib.request.Request(url=hub_url, data=json_data, headers=hub_headers)
+>         with urllib.request.urlopen(req) as f:
+>            res = f.read()
+>         info("Hubitat update was a success")
+>     except Exception as e:
+>         error("Hubitat update request failed")
+> 
+> 
+> 
+> 
+135a158
+>             print('made it to account')
+137a161
+>             hubUsageDataPoints = []
+140a165
+>             count = 0
+143,158c168,197
+< 
+<                 usage, usage_start_time = account['vue'].get_chart_usage(chan, start, account['end'], scale=Scale.SECOND.value, unit=Unit.KWH.value)
+<                 index = 0
+<                 for kwhUsage in usage:
+<                     if kwhUsage is not None:
+<                         watts = float(secondsInAnHour * wattsInAKw) * kwhUsage
+<                         dataPoint = {
+<                             "measurement": "energy_usage",
+<                             "tags": {
+<                                 "account_name": account['name'],
+<                                 "device_name": chanName,
+<                             },
+<                             "fields": {
+<                                 "usage": watts,
+<                             },
+<                             "time": start + datetime.timedelta(seconds=index)
+---
+>                 try:
+>                 #count += 1
+>                 #if count > 1: 
+>                 #   continue
+>                    usage, usage_start_time = account['vue'].get_chart_usage(chan, start, account['end'], scale=Scale.SECOND.value, unit=Unit.KWH.value)
+>                    index = 0
+>                    wattSum = 0
+>                    for kwhUsage in usage:
+>                        if kwhUsage is not None:
+>                            watts = float(secondsInAnHour * wattsInAKw) * kwhUsage
+>                            wattSum = wattSum + watts
+>                            dataPoint = {
+>                                "measurement": "energy_usage",
+>                                "tags": {
+>                                    "account_name": account['name'],
+>                                    "device_name": chanName,
+>                                },
+>                                "fields": {
+>                                    "usage": watts,
+>                                },
+>                                "time": start + datetime.timedelta(seconds=index)
+>                            }
+>                            index = index + 1
+>                            usageDataPoints.append(dataPoint)
+>                    wattSum = wattSum / index        
+>                    channelID = chan.channel_num
+>                    hubDataPoint = {
+>                            "channel_name": chanName,
+>                            "channel_id": channelID,
+>                            "usage": wattSum
+160,161c199,204
+<                         index = index + 1
+<                         usageDataPoints.append(dataPoint)
+---
+>                    hubUsageDataPoints.append(hubDataPoint)
+>                 except:
+>                     error('Failed to fetch metrics: {}'.format(sys.exc_info()))
+>                     error('Failed on: deviceGid={}; chanNum={}; chanName={};'.format(chan.device_gid, chan.channel_num, chanName))
+> 
+> 
+164a208
+> 
+166a211,217
+>         sendData = {     
+>                 "account": {
+>                    "account_name": account['name'], 
+>                    "channels": hubUsageDataPoints 
+>                }
+>             }    
+>         send_to_hub(sendData)

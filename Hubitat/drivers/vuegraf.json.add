@@ -1,0 +1,6 @@
+    "hubitat": {
+        "host": "192.168.0.7",
+        "port": 39501,
+        "enable": true
+    },
+
